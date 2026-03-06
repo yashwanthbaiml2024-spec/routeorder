@@ -1,0 +1,509 @@
+/* ================================================================
+   style.css — RouteMaster Order Picker
+   ================================================================ */
+
+/* ── Reset & Custom Properties ─────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --clr-bg:         #0f172a;   /* page background */
+  --clr-surface:    #1e293b;   /* panel background */
+  --clr-border:     #334155;
+  --clr-text:       #e2e8f0;
+  --clr-muted:      #94a3b8;
+  --clr-accent:     #38bdf8;   /* button / highlight */
+  --clr-accent-h:   #0ea5e9;
+
+  /* Grid cell colours */
+  --cell-walkable:  #1e3a4c;
+  --cell-obstacle:  #dc2626;
+  --cell-target:    #f59e0b;
+  --cell-start:     #22d3ee;
+  --cell-path:      #34d399;
+  --cell-walker:    #f472b6;   /* animated picker */
+  --cell-visited:   #1d4d3a;   /* faded path for visited trail */
+
+  --cell-size: 40px;
+  --cell-gap:   3px;
+  --radius:     8px;
+  --transition: 0.2s ease;
+}
+
+/* ── Base ───────────────────────────────────────────────────── */
+html { font-size: 16px; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--clr-bg);
+  color: var(--clr-text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Split Text Animation ────────────────────────────────────── */
+.split-char {
+  display: inline-block;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Keep h1 and subtitle overflow hidden during animation */
+#site-title,
+#site-subtitle {
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+header {
+  text-align: center;
+  padding: 2rem 1rem 1.5rem;
+  border-bottom: 1px solid var(--clr-border);
+  background: linear-gradient(135deg, #0f2644 0%, #0f172a 60%);
+}
+
+header h1 {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: 0.04em;
+  color: var(--clr-accent);
+}
+
+header .subtitle {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--clr-muted);
+}
+
+/* ── Main Layout ────────────────────────────────────────────── */
+main {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  flex: 1;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+}
+
+/* ── Panels ─────────────────────────────────────────────────── */
+.panel {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Dashboard & Stats ──────────────────────────────────────── */
+.dashboard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  justify-content: center;
+}
+
+.stat-card {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  flex: 1 1 calc(33% - 0.75rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  min-width: 100px;
+}
+
+.stat-title {
+  font-size: 0.75rem;
+  color: var(--clr-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--clr-accent);
+}
+
+/* ── Section Labels ─────────────────────────────────────────── */
+.section-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--clr-muted);
+}
+
+/* ── Instructions (collapsible) ─────────────────────────────── */
+.instructions {
+  background: #162032;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.instructions summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--clr-accent);
+  list-style: none;
+  user-select: none;
+}
+
+.instructions summary::-webkit-details-marker { display: none; }
+
+.instructions ul {
+  margin-top: 0.75rem;
+  padding-left: 1.2rem;
+  color: var(--clr-muted);
+}
+
+.instructions code {
+  background: #0f2033;
+  border: 1px solid var(--clr-border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.85em;
+  color: var(--clr-accent);
+}
+
+/* ── Upload Section ────────────────────────────────────────── */
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #162032;
+  border: 1px dashed var(--clr-border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+}
+
+.upload-hint {
+  font-size: 0.8rem;
+  color: var(--clr-muted);
+}
+
+.upload-hint code {
+  background: #0f2033;
+  border: 1px solid var(--clr-border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.85em;
+  color: var(--clr-accent);
+}
+
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* Hide the native file input; triggered via JS from the Choose File button */
+#json-file-input {
+  display: none;
+}
+
+.file-label {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: var(--clr-accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.file-label:hover { background: var(--clr-accent-h); }
+
+.file-name {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--clr-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+#load-file-btn {
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: #34d399;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+}
+
+#load-file-btn:hover    { background: #059669; color: #fff; }
+#load-file-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.upload-status {
+  font-size: 0.82rem;
+  min-height: 1.2em;
+  color: var(--clr-muted);
+}
+
+.upload-status--success { color: #34d399; }
+.upload-status--error   { color: #f87171; }
+
+/* ── Textarea ───────────────────────────────────────────────── */
+#json-input {
+  width: 100%;
+  min-height: 240px;
+  resize: vertical;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: #a5f3fc;
+  background: #0c1a27;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+#json-input:focus {
+  border-color: var(--clr-accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+/* ── Find Route Button ──────────────────────────────────────── */
+#find-route-btn {
+  align-self: flex-start;
+  padding: 0.65rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: var(--clr-accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+}
+
+#find-route-btn:hover  { background: var(--clr-accent-h); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(14, 165, 233, 0.45); }
+#find-route-btn:active { transform: translateY(0); }
+
+/* ── JSON Output ────────────────────────────────────────────── */
+#json-output {
+  background: #0c1a27;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: #86efac;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* ── Animation Controls ─────────────────────────────────────── */
+#animation-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+#animate-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: #a78bfa;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+#animate-btn:hover    { background: #7c3aed; color: #fff; }
+#animate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.speed-label { font-size: 0.8rem; color: var(--clr-muted); }
+
+#speed-range {
+  flex: 1;
+  accent-color: var(--clr-accent);
+  cursor: pointer;
+  min-width: 80px;
+}
+
+#speed-display {
+  font-size: 0.8rem;
+  color: var(--clr-muted);
+  min-width: 55px;
+  text-align: right;
+}
+
+/* ── Legend ─────────────────────────────────────────────────── */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--clr-muted);
+}
+
+.swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.swatch.start    { background: var(--cell-start); }
+.swatch.target   { background: var(--cell-target); }
+.swatch.path     { background: var(--cell-path); }
+.swatch.walker   { background: var(--cell-walker); }
+.swatch.obstacle { background: var(--cell-obstacle); box-shadow: 0 0 4px rgba(220, 38, 38, 0.5); }
+.swatch.walkable { background: var(--cell-walkable); }
+
+/* ── Grid Container ─────────────────────────────────────────── */
+#grid-container {
+  display: inline-grid;  /* columns set dynamically by JS */
+  gap: var(--cell-gap);
+  background: #0c1a27;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 10px;
+  overflow: auto;
+  max-width: 100%;
+}
+
+/* ── Individual Cells ───────────────────────────────────────── */
+.cell {
+  width:  var(--cell-size);
+  height: var(--cell-size);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
+  border: 1px solid rgba(255,255,255,0.04);
+  position: relative;
+  cursor: pointer;
+}
+
+.cell:hover {
+  transform: scale(1.1);
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(255,255,255,0.2);
+}
+
+/* Cell type classes */
+.cell.walkable  { background: var(--cell-walkable); }
+.cell.obstacle  { background: var(--cell-obstacle); box-shadow: 0 0 6px rgba(220, 38, 38, 0.5); }
+
+.cell.target {
+  background: var(--cell-target);
+  color: #0f172a;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+.cell.start {
+  background: var(--cell-start);
+  color: #0f172a;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.7);
+}
+
+.cell.path {
+  background: var(--cell-path);
+  color: #0f172a;
+}
+
+/* Walker cell (animated picker position) */
+.cell.walker {
+  background: var(--cell-walker);
+  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 900;
+  transform: scale(1.15);
+  box-shadow: 0 0 14px rgba(244, 114, 182, 0.8);
+  z-index: 2;
+}
+
+/* Visited trail — path cells the walker has already passed */
+.cell.visited {
+  background: var(--cell-visited);
+}
+
+/* Pulse animation for newly highlighted path cells during step reveal */
+@keyframes pulse {
+  0%   { transform: scale(1.2); box-shadow: 0 0 14px rgba(52, 211, 153, 0.9); }
+  100% { transform: scale(1);   box-shadow: none; }
+}
+
+.cell.path-reveal {
+  animation: pulse 0.4s ease forwards;
+}
+
+/* ── Placeholder Text ───────────────────────────────────────── */
+.placeholder-text {
+  color: var(--clr-muted);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+/* ── JSON Syntax Highlight (output pre) ────────────────── */
+.json-key     { color: #7dd3fc; }   /* sky blue    — keys        */
+.json-string  { color: #86efac; }   /* green       — strings     */
+.json-number  { color: #fbbf24; }   /* amber       — numbers     */
+.json-bool    { color: #f472b6; }   /* pink        — true/false  */
+.json-null    { color: #94a3b8; }   /* muted grey  — null        */
+.json-error   { color: #f87171; }   /* red         — errors      */
+/* ── Footer ─────────────────────────────────────────────────── */
+footer {
+  text-align: center;
+  padding: 1rem;
+  border-top: 1px solid var(--clr-border);
+  font-size: 0.8rem;
+  color: var(--clr-muted);
+}
+
+/* ── Scrollbar (webkit) ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--clr-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }

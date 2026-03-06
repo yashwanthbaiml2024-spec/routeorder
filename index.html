@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RouteMaster Order Picker</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+
+    <!-- ════════════════════════════════════
+         HEADER
+    ════════════════════════════════════ -->
+    <header>
+      <h1 id="site-title">&#x1F4E6; RouteMaster Order Picker</h1>
+      <p class="subtitle" id="site-subtitle">Warehouse pathfinding powered by Breadth-First Search</p>
+    </header>
+
+    <main>
+
+      <!-- ════════════════════════════════
+           LEFT PANEL — input & output
+      ════════════════════════════════ -->
+      <section class="panel" id="input-panel">
+
+        <!-- Instructions -->
+        <details class="instructions" open>
+          <summary>&#x2139;&#xFE0F; How to use</summary>
+          <ul>
+            <li><strong>Option A — Upload a JSON file</strong> containing <code>GRID</code> and <code>START</code> keys, then click <strong>Load</strong>.</li>
+            <li><strong>Option B — Paste or edit</strong> the JSON directly in the textarea below.</li>
+            <li><strong>Option C — Click cells</strong> on the grid to dynamically place walls and targets!</li>
+            <li><strong>GRID</strong> / <strong>grid</strong> — 2-D array where <code>0</code> = walkable, <code>1</code> = obstacle, <code>2</code> = target item.</li>
+            <li><strong>START</strong> / <strong>start</strong> — <code>[row, col]</code> of the picker's starting position.</li>
+            <li>Mark <strong>one or more cells</strong> in the grid with <code>2</code> — those are the targets. The picker visits all of them via greedy nearest-neighbour BFS.</li>
+            <li>Click <strong>Find Route</strong> to run BFS and view the result.</li>
+          </ul>
+        </details>
+
+        <!-- ── File Upload ─────────────────────────────────────── -->
+        <div class="upload-section">
+          <label class="section-label">&#x1F4C2; Upload JSON File</label>
+          <p class="upload-hint">JSON must contain <code>GRID</code> (with <strong>one or more</strong> cells set to <code>2</code> as targets) and <code>START</code> keys.</p>
+          <div class="upload-row">
+            <button type="button" id="choose-file-btn" class="file-label">&#x1F4C1; Choose File</button>
+            <input type="file" id="json-file-input" accept=".json" aria-label="Upload JSON file" />
+            <span id="file-name-display" class="file-name">No file chosen</span>
+            <button type="button" id="load-file-btn" disabled>&#x2B06;&#xFE0F; Load</button>
+          </div>
+          <p id="upload-status" class="upload-status" aria-live="polite"></p>
+        </div>
+
+        <!-- JSON Input -->
+        <label for="json-input" class="section-label">&#x1F4CB; JSON Input</label>
+        <textarea
+          id="json-input"
+          spellcheck="false"
+          placeholder='Paste your warehouse JSON here…'
+          aria-label="JSON input"
+        >{
+  "grid": [
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 1, 1, 0],
+    [0, 0, 0, 0, 0, 2, 0],
+    [0, 1, 0, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0]
+  ],
+  "start": [0, 0]
+}</textarea>
+
+        <button id="find-route-btn" aria-label="Find the shortest route">
+          &#x1F9ED; Find Route
+        </button>
+
+        <!-- JSON Output -->
+        <label class="section-label">&#x1F4E4; JSON Output</label>
+        <pre id="json-output" aria-live="polite">// Result will appear here after you click Find Route.</pre>
+
+        <!-- Animation Controls (shown after a route is found) -->
+        <div id="animation-controls" hidden>
+          <button id="animate-btn">&#x25B6;&#xFE0F; Animate Path</button>
+          <label for="speed-range" class="speed-label">Speed</label>
+          <input
+            type="range"
+            id="speed-range"
+            min="50"
+            max="800"
+            value="300"
+            step="50"
+            aria-label="Animation speed"
+          />
+          <span id="speed-display">300 ms</span>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════
+           RIGHT PANEL — legend + grid
+      ════════════════════════════════ -->
+      <section class="panel" id="visual-panel">
+
+        <div id="stats-container" hidden>
+          <label class="section-label">&#x1F4CA; Route Statistics</label>
+          <div class="dashboard" id="stats-dashboard">
+            <div class="stat-card">
+              <span class="stat-title">Total Steps</span>
+              <span class="stat-value" id="total-steps">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">Targets Collected</span>
+              <span class="stat-value" id="targets-collected">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">Estimated Time</span>
+              <span class="stat-value" id="estimated-time">0 sec</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">Path Efficiency</span>
+              <span class="stat-value" id="path-efficiency">0%</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">Algorithm Used</span>
+              <span class="stat-value" id="algorithm-used">BFS</span>
+            </div>
+          </div>
+
+          <div class="chart-container" style="position: relative; height: 150px; width: 100%; margin-bottom: 1rem;">
+            <canvas id="statsChart"></canvas>
+          </div>
+        </div>
+
+        <label class="section-label" id="grid-label" hidden>&#x1F5FA;&#xFE0F; Warehouse Grid</label>
+
+        <!-- Colour legend -->
+        <div class="legend" id="grid-legend" aria-label="Grid legend" hidden>
+          <div class="legend-item"><span class="swatch start"></span>Start</div>
+          <div class="legend-item"><span class="swatch target"></span>Target</div>
+          <div class="legend-item"><span class="swatch path"></span>Path</div>
+          <div class="legend-item"><span class="swatch walker"></span>Picker</div>
+          <div class="legend-item"><span class="swatch obstacle"></span>Obstacle</div>
+          <div class="legend-item"><span class="swatch walkable"></span>Walkable</div>
+        </div>
+
+        <!-- Grid container — filled dynamically by script.js -->
+        <div id="grid-container" aria-label="Warehouse grid visualization"></div>
+
+        <p id="grid-placeholder" class="placeholder-text">
+          Grid will appear here once you click <strong>Find Route</strong>.
+        </p>
+      </section>
+
+    </main>
+
+    <footer>
+      <p>RouteMaster Order Picker &mdash; BFS Pathfinding Demo &mdash; 2026</p>
+    </footer>
+
+    <!-- Scripts (algorithm first so findShortestRoute is available to script.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="algorithm.js"></script>
+    <script src="script.js"></script>
+
+    <!-- ════════════════════════════════════
+         SplitText Header Animation
+    ════════════════════════════════════ -->
+    <script>
+      (function () {
+        /**
+         * splitAnimate(selector, options)
+         * Splits an element's text into individual <span> chars,
+         * then animates them in with a staggered cubic-bezier ease
+         * matching GSAP's power3.out.
+         */
+        function splitAnimate(selector, {
+          delay       = 50,
+          duration    = 1250,
+          fromY       = 40,
+          fromOpacity = 0,
+          staggerBase = 0,
+          color       = null,
+        } = {}) {
+          const el = document.querySelector(selector);
+          if (!el) return;
+
+          // Preserve the emoji at the start if present
+          const originalHTML = el.innerHTML;
+
+          // Split into chars — keep HTML entities / emoji as single units
+          const segments = [];
+          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          const textNodes = [];
+          let node;
+          while ((node = walker.nextNode())) textNodes.push(node);
+
+          // Rebuild element with wrapped chars
+          el.innerHTML = '';
+          el.style.overflow = 'hidden';
+
+          // Re-parse original as plain text preserving emoji
+          const fullText = originalHTML.replace(/<[^>]+>/g, '');
+          // Decode HTML entities
+          const tmp = document.createElement('div');
+          tmp.innerHTML = originalHTML;
+          const plainText = tmp.textContent || tmp.innerText;
+
+          // Segment into grapheme clusters (handles emoji correctly)
+          const chars = [...plainText];
+
+          chars.forEach((ch, i) => {
+            if (ch === ' ') {
+              el.appendChild(document.createTextNode('\u00A0'));
+              return;
+            }
+            const span = document.createElement('span');
+            span.className = 'split-char';
+            span.textContent = ch;
+            span.style.cssText = [
+              'display:inline-block',
+              `opacity:${fromOpacity}`,
+              `transform:translateY(${fromY}px)`,
+              'will-change:transform,opacity',
+            ].join(';');
+            if (color) span.style.color = color;
+            el.appendChild(span);
+          });
+
+          // Animate each char with staggered delay
+          el.querySelectorAll('.split-char').forEach((span, i) => {
+            const start = staggerBase + i * delay;
+            setTimeout(() => {
+              span.style.transition =
+                `transform ${duration}ms cubic-bezier(0.215,0.61,0.355,1),` +
+                `opacity ${duration}ms cubic-bezier(0.215,0.61,0.355,1)`;
+              span.style.transform  = 'translateY(0)';
+              span.style.opacity    = '1';
+            }, start);
+          });
+        }
+
+        // Wait for fonts
+        const run = () => {
+          splitAnimate('#site-title', {
+            delay:       45,
+            duration:    1250,
+            fromY:       40,
+            staggerBase: 0,
+          });
+          splitAnimate('#site-subtitle', {
+            delay:       30,
+            duration:    1000,
+            fromY:       20,
+            staggerBase: 400,   // starts after title begins
+          });
+        };
+
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(run);
+        } else {
+          window.addEventListener('load', run);
+        }
+      })();
+    </script>
+  </body>
+</html>
